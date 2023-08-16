@@ -37,20 +37,6 @@ struct InputLayout {
 pub fn routes() -> Router {
     Router::new().route("/validate", post(handler_validate))
 }
-
-#[derive(Debug)]
-struct Edge {
-    id: String,
-    source: Arc<Node>,
-    sink: Arc<Node>,
-}
-
-#[derive(Debug)]
-struct Node {
-    input_node: Arc<InputNode>,
-    edges: Vec<Arc<Edge>>,
-}
-
 async fn handler_validate(Json(layout): Json<InputLayout>) -> Result<()> {
     let ids = layout
         .nodes
@@ -100,41 +86,6 @@ async fn handler_validate(Json(layout): Json<InputLayout>) -> Result<()> {
             .then_some({})
             .ok_or(Error::NodeNeedsMoreDriveways)
     })?;
-
-    //     let mut node_map: HashMap<&str, Arc<Node>> = layout
-    //         .nodes
-    //         .iter()
-    //         .map(|node| {
-    //             (
-    //                 dbg!(node.id.as_str()),
-    //                 Arc::new(Node {
-    //                     input_node: Arc::new(node.clone()),
-    //                     edges: vec![],
-    //                 }),
-    //             )
-    //         })
-    //         .collect();
-    //
-    //     println!("{node_map:?}");
-    //
-    //     let edges: Vec<_> = layout
-    //         .edges
-    //         .iter()
-    //         .map(|edge| {
-    //             let source_n = node_map.get(edge.source.as_str()).unwrap().clone();
-    //             let sink_n = node_map.get(edge.sink.as_str()).unwrap().clone();
-    //             let e = Arc::new(Edge {
-    //                 id: edge.id.to_owned(),
-    //                 source: source_n,
-    //                 sink: sink_n,
-    //             });
-    //             let node = Arc::get_mut(node_map.get_mut(edge.source.as_str()).unwrap()).unwrap();
-    //             node.edges.push(e.clone());
-    //             e
-    //         })
-    //         .collect();
-    //
-    //     println!("{edges:?}");
 
     Ok(())
 }
