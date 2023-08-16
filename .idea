@@ -1,0 +1,26 @@
+
+
+POST: /validate
+
+Body: structure defined in data.json
+- deser using serde
+- validation
+    - node
+        - node xy is always >0
+        - (id,pos.x,pos.y) is uniq
+    - edge
+        - (id,source,sink) is uniq
+        - source and sink are valid node.id
+
+
+
+    - Each driveway connects only existing nodes
+        - Error::InvalidNodeInEdge
+    - Each driveway is connected on both ends to an intersection node
+        - Error::EdgeMissingSourceOrSink
+    - Each intersection node has at least two driveways connected
+        - Error::NodeNeedsMoreDriveways
+    - Each intersection node should be reachable from any other intersection node
+        - Error::DisConnectedNodesFound
+        - This requires implmentation of a DFS with VISITED node tracking
+            The time complexity seems to linear on nodes and edges
