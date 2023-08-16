@@ -34,7 +34,8 @@ impl std::error::Error for Error {}
 
 impl IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
-        println!("->> {:<12} - {self:?}", "INTO_RES");
+        println!("->> {:<12} - {self:?}", "ERROR_RESP");
+        println!();
 
         let error_json = json!({ "error": { "details": self.as_ref() } });
         (self.status_code(), Json(error_json)).into_response()

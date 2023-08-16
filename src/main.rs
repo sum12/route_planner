@@ -36,6 +36,8 @@ async fn main() -> Result<()> {
 async fn main_response_mapper(res: Response) -> Response {
     println!("->> {:12} - main_response_mapper {res:?}", "RES_MAPPER");
 
+    // handle any additional mapping mapping that is not already handled by the error.rs
+
     println!();
     res
 }
@@ -50,7 +52,7 @@ fn routes_ping() -> Router {
 }
 
 async fn handler_ping(Query(params): Query<PingParams>) -> impl IntoResponse {
-    println!(" ->> {:12} - handler_ping", "HANDLER");
+    println!("->> {:12} - handler_ping", "HANDLER");
 
     Html(format!("{}", params.echo.as_deref().unwrap_or("pong")))
 }

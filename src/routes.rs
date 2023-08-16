@@ -48,7 +48,7 @@ async fn handler_validate(
     State(mc): State<ModelController>,
     Json(layout): Json<InputLayout>,
 ) -> Result<()> {
-    println!(" ->> {:12} - handler_validate", "HANDLER");
+    println!("->> {:12} - handler_validate", "HANDLER");
 
     let ids = layout
         .nodes
@@ -118,7 +118,7 @@ pub async fn handler_query(
     State(mc): State<ModelController>,
     Query(params): Query<PathQueryParams>,
 ) -> Result<()> {
-    println!(" ->> {:12} - handler_query", "HANDLER");
+    println!("->> {:12} - handler_query", "HANDLER");
     let layout = mc.layout().await?;
 
     let ids: Vec<&str> = layout
