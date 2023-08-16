@@ -1,4 +1,4 @@
-use crate::routes::routes;
+use crate::{model::ModelController, routes::routes};
 use std::net::SocketAddr;
 
 pub use self::error::{Error, Result};
@@ -16,11 +16,12 @@ mod model;
 mod routes;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
+    let mc = ModelController::new().await?;
     let routes_all = Router::new()
         .merge(routes_ping())
         .layer(middleware::map_response(main_response_mapper))
-        .nest("/api", routes());
+        .nest("/api", routes(mc));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8001));
     println!("->> LISTENING on {addr}");
@@ -29,6 +30,7 @@ async fn main() {
         .serve(routes_all.into_make_service())
         .await
         .unwrap();
+    Ok(())
 }
 
 async fn main_response_mapper(res: Response) -> Response {

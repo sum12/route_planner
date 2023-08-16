@@ -1,43 +1,55 @@
 #![allow(unused)]
-use crate::{Error, Result};
+use crate::{model::ModelController, Error, Result};
 use std::{
-    alloc::Layout,
     collections::{HashMap, HashSet},
     sync::Arc,
 };
 
-use axum::{response::IntoResponse, routing::post, Json, Router};
+use axum::{
+    extract::{Query, State},
+    response::IntoResponse,
+    routing::{get, post},
+    Json, Router,
+};
 use serde::Deserialize;
 #[derive(Debug, Deserialize)]
-struct InputEdge {
-    id: String,
-    source: String,
-    sink: String,
+pub struct InputEdge {
+    pub id: String,
+    pub source: String,
+    pub sink: String,
 }
 
 #[derive(Debug, Deserialize, Eq, PartialEq, Hash, Clone, Copy)]
-struct InputPosition {
-    x: u64,
-    y: u64,
+pub struct InputPosition {
+    pub x: u64,
+    pub y: u64,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-struct InputNode {
-    id: String,
-    position: InputPosition,
+pub struct InputNode {
+    pub id: String,
+    pub position: InputPosition,
 }
 
 #[derive(Debug, Deserialize)]
-struct InputLayout {
-    id: String,
-    nodes: Vec<InputNode>,
-    edges: Vec<InputEdge>,
+pub struct InputLayout {
+    pub id: String,
+    pub nodes: Vec<InputNode>,
+    pub edges: Vec<InputEdge>,
 }
 
-pub fn routes() -> Router {
-    Router::new().route("/validate", post(handler_validate))
+pub fn routes(mc: ModelController) -> Router {
+    Router::new()
+        .route("/query", get(handler_query))
+        .route("/validate", post(handler_validate))
+        .with_state(mc)
 }
-async fn handler_validate(Json(layout): Json<InputLayout>) -> Result<()> {
+async fn handler_validate(
+    State(mc): State<ModelController>,
+    Json(layout): Json<InputLayout>,
+) -> Result<()> {
+    println!(" ->> {:12} - handler_validate", "HANDLER");
+
     let ids = layout
         .nodes
         .iter()
@@ -51,17 +63,21 @@ async fn handler_validate(Json(layout): Json<InputLayout>) -> Result<()> {
     })?;
 
     {
-        let positions = layout.nodes.iter().map(|node| node.position);
-        let uniq_count = positions
-            .clone()
-            .collect::<HashSet<_>>()
-            .into_iter()
-            .count();
-        if positions.count() != uniq_count {
+        // another way to handle uniques, extra scope to explicitly drop the intermediaries
+        let posi = layout.nodes.iter().map(|node| node.position);
+        let uniq_count = posi.clone().collect::<HashSet<_>>().into_iter().count();
+        if posi.count() != uniq_count {
             return Err(Error::NodesMustBeUnique);
         }
     }
 
+    {
+        let edges = layout.edges.iter().map(|edge| edge.id.as_str());
+        let uniq_count = edges.clone().collect::<HashSet<_>>().into_iter().count();
+        if edges.count() != uniq_count {
+            return Err(Error::EdgesMustBeUnique);
+        }
+    }
     layout.edges.iter().try_for_each(|edge| {
         edge;
         (ids.contains(&edge.source.as_str()) && ids.contains(&edge.sink.as_str()))
@@ -80,12 +96,39 @@ async fn handler_validate(Json(layout): Json<InputLayout>) -> Result<()> {
             .and_modify(|count| *count += 1)
             .or_insert(1);
     });
-    println!("{node_count:?}");
+
     node_count.values().try_for_each(|count| {
         ((*count) >= 2)
             .then_some({})
             .ok_or(Error::NodeNeedsMoreDriveways)
     })?;
 
+    mc.update(layout).await?;
+
+    Ok(())
+}
+
+#[derive(Deserialize)]
+pub struct PathQueryParams {
+    start: String,
+    goal: String,
+}
+
+pub async fn handler_query(
+    State(mc): State<ModelController>,
+    Query(params): Query<PathQueryParams>,
+) -> Result<()> {
+    println!(" ->> {:12} - handler_query", "HANDLER");
+    let layout = mc.layout().await?;
+
+    let ids: Vec<&str> = layout
+        .nodes
+        .iter()
+        .map(|node| node.id.as_str())
+        .collect::<Vec<_>>();
+
+    (ids.contains(&params.start.as_str()) && ids.contains(&params.goal.as_str()))
+        .then_some({})
+        .ok_or(Error::NodesNotFound)?;
     Ok(())
 }
