@@ -82,7 +82,7 @@ async fn handler_validate(Json(layout): Json<InputLayout>) -> Result<()> {
     });
     println!("{node_count:?}");
     node_count.values().try_for_each(|count| {
-        (dbg!(*count) >= 2)
+        ((*count) >= 2)
             .then_some({})
             .ok_or(Error::NodeNeedsMoreDriveways)
     })?;

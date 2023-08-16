@@ -79,7 +79,7 @@ async fn test_invalid_number_of_nodes() -> Result<()> {
     assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
     assert_eq!(
         resp.json_body()?,
-        json!({"error":{"details": "node does not have enough driveways"}})
+        json!({"error":{"details": "node does not have enough number of driveways"}})
     );
 
     Ok(())
