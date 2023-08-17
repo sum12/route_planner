@@ -122,6 +122,10 @@ pub struct PathQueryParams {
     goal: String,
 }
 
+/// handler for /query path
+///
+/// needs to query params
+/// start and goal. Both should be valid node in the map
 pub async fn handler_query(
     State(mc): State<ModelController>,
     Query(mut params): Query<PathQueryParams>,
@@ -150,6 +154,8 @@ pub async fn handler_query(
     let mut visited: Vec<(&str, Vec<&str>)> = vec![];
     visited.push((params.start.as_str(), vec![]));
 
+    // this does not handle cycles at all
+    // there are various ways to handle them but would leave it out of scope for now
     let path = while !visited.is_empty() {
         let (n, mut path) = visited.pop().unwrap(); // just checked to be not empty
         if n == params.goal.as_str() {

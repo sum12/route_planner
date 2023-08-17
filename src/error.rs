@@ -66,6 +66,7 @@ impl AsRef<str> for Error {
             Self::EdgeMissingSourceOrSink => "edge is missing a source or sink",
             Self::NodeNeedsMoreDriveways => "node does not have enough number of driveways",
             Self::NodesNotFound => "the provided nodes were not found",
+            Self::PathNotFound => "no valid path was found",
             _ => "internal server error",
         }
     }

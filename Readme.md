@@ -74,10 +74,19 @@ GET /query?start=<node_id>&goal=<node_id>
     start/goal 
         - should be valid nodes on the map
 
+- Return
+    - array of nodes to the path 
+    - Error::PathNotFound
+
+- Caveat
+    - ther could be more that one correct paths, the algorith is DFS+parent tracking
+      so it is greedy and is happy with first path found
+    - does not handle cycles very effectively
+
 
 ```
 
-### Todo
+### Goals
 
 Requirements for the module:
 
@@ -88,6 +97,6 @@ Requirements for the module:
     - Each intersection node should be reachable from any other intersection node (*todo*)
 - Provide an RESTapi endpoint for route planning
     - Operates on the last valid map passed to the layout validation endpoint (**done**)
-    - Consumes two intersection IDs (start, goal) and returns a sequence of node and edge ids (*todo*)
+    - Consumes two intersection IDs (start, goal) and returns a sequence of node and edge ids (**done**)
     - Return the total distance of travel along with the route (*todo*)
     - Endpoint can serve many requests at once  (**done**)
