@@ -12,6 +12,7 @@ use axum::{
     Json, Router,
 };
 use serde::Deserialize;
+use serde_json::json;
 #[derive(Debug, Deserialize)]
 pub struct InputEdge {
     pub id: String,
@@ -19,10 +20,10 @@ pub struct InputEdge {
     pub sink: String,
 }
 
-#[derive(Debug, Deserialize, Eq, PartialEq, Hash, Clone, Copy)]
+#[derive(Debug, Deserialize, Clone, Copy)]
 pub struct InputPosition {
-    pub x: u64,
-    pub y: u64,
+    pub x: f32,
+    pub y: f32,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -63,15 +64,22 @@ async fn handler_validate(
     })?;
 
     {
-        // another way to handle uniques, extra scope to explicitly drop the intermediaries
-        let posi = layout.nodes.iter().map(|node| node.position);
-        let uniq_count = posi.clone().collect::<HashSet<_>>().into_iter().count();
-        if posi.count() != uniq_count {
-            return Err(Error::NodesMustBeUnique);
-        }
+        let seen = vec![];
+        let posi = layout
+            .nodes
+            .iter()
+            .map(|node| (node.position.x, node.position.y))
+            .try_for_each(|(x, y)| {
+                if seen.contains(&(x, y)) {
+                    Err(Error::NodesMustBeUnique)
+                } else {
+                    Ok(())
+                }
+            });
     }
 
     {
+        // another way to handle uniques, extra scope to explicitly drop the intermediaries
         let edges = layout.edges.iter().map(|edge| edge.id.as_str());
         let uniq_count = edges.clone().collect::<HashSet<_>>().into_iter().count();
         if edges.count() != uniq_count {
@@ -108,7 +116,7 @@ async fn handler_validate(
     Ok(())
 }
 
-#[derive(Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct PathQueryParams {
     start: String,
     goal: String,
@@ -116,12 +124,12 @@ pub struct PathQueryParams {
 
 pub async fn handler_query(
     State(mc): State<ModelController>,
-    Query(params): Query<PathQueryParams>,
-) -> Result<()> {
-    println!("->> {:12} - handler_query", "HANDLER");
+    Query(mut params): Query<PathQueryParams>,
+) -> Result<Json<Vec<String>>> {
+    println!("->> {:12} - handler_query {params:?}", "HANDLER");
     let layout = mc.layout().await?;
 
-    let ids: Vec<&str> = layout
+    let ids = layout
         .nodes
         .iter()
         .map(|node| node.id.as_str())
@@ -130,5 +138,30 @@ pub async fn handler_query(
     (ids.contains(&params.start.as_str()) && ids.contains(&params.goal.as_str()))
         .then_some({})
         .ok_or(Error::NodesNotFound)?;
-    Ok(())
+
+    let mut map = HashMap::new();
+
+    layout.edges.iter().for_each(|edge| {
+        map.entry(edge.source.as_str())
+            .and_modify(|sinks: &mut Vec<_>| sinks.push(edge.sink.as_str()))
+            .or_insert(vec![edge.sink.as_str()]);
+    });
+
+    let mut visited: Vec<(&str, Vec<&str>)> = vec![];
+    visited.push((params.start.as_str(), vec![]));
+
+    let path = while !visited.is_empty() {
+        let (n, mut path) = visited.pop().unwrap(); // just checked to be not empty
+        if n == params.goal.as_str() {
+            path.push(params.goal.as_str());
+            return Ok(Json(path.iter().map(|node| node.to_string()).collect()));
+        }
+        map.get(n).unwrap().iter().for_each(|nn| {
+            let mut pp = path.clone();
+            pp.push(n);
+            visited.push((nn, pp));
+        });
+    };
+
+    Err(Error::PathNotFound)
 }

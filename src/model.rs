@@ -18,7 +18,7 @@ pub struct Edge {
 #[derive(Debug, Clone)]
 pub struct Node {
     pub id: String,
-    pub position: (u64, u64),
+    pub position: (f32, f32),
 }
 
 #[derive(Debug, Clone)]

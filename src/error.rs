@@ -22,6 +22,7 @@ pub enum Error {
     NodeNeedsMoreDriveways,
     // DisconnectedNodesFound
     NodesNotFound, // when start and goal for /query are not invalid
+    PathNotFound,
 }
 
 impl std::fmt::Display for Error {
