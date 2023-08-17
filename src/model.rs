@@ -37,10 +37,14 @@ pub struct Model(Option<Arc<Layout>>);
 //
 // - any /query queries will always return an error till a valid map is updated
 // - queries on /query will Arc::clone the model after a read-lock
-//      - during a readlock, map updates (write) will be blocked,
+//      - during a readlock, map updates (write via /validate) will be blocked,
 //      - and during write, read locks (/query will be blocked)
-//      - however the lock are held only for Arc::clone() and simple assignment
+//      - however the lock are helds only for Arc::clone() and simple assignment
 //      - which should be pretty fast
+// - wrapping in Arc helps give out shared references to the layout
+// - RwLock helps write lock
+//      - write lock failures are gracefully handled and so any concurrent updates
+//      - can be easily retried
 //
 //
 // The update is the tricky part;
@@ -73,6 +77,8 @@ impl ModelController {
         }
     }
     pub async fn update(&self, input_layout: InputLayout) -> Result<()> {
+        // the layout needs to be copied to the model, thus the to_owned are necessary.
+        // if copy load is high, one could just consume the passed layout by destrcuturing it.
         let nodes: Vec<_> = input_layout
             .nodes
             .iter()
